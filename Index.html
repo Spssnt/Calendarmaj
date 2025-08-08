@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Calendrier Bohème Pastel</title>
+<style>
+    body {
+        font-family: 'Segoe UI', sans-serif;
+        background-color: #fefaf6;
+        color: #5d4b4b;
+        display: flex;
+        justify-content: center;
+        padding: 20px;
+    }
+    .calendar {
+        background: #fffdf9;
+        padding: 20px;
+        border-radius: 20px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        max-width: 350px;
+    }
+    .calendar h2 {
+        text-align: center;
+        margin-bottom: 10px;
+        color: #a67b6a;
+    }
+    .calendar table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    .calendar th {
+        color: #c8a382;
+        padding-bottom: 5px;
+    }
+    .calendar td {
+        text-align: center;
+        padding: 10px;
+        cursor: pointer;
+        border-radius: 50%;
+        transition: background 0.3s;
+    }
+    .calendar td:hover {
+        background-color: #f8e9de;
+    }
+    .event-day {
+        background-color: #f9d5bb !important;
+        color: white;
+    }
+    /* Pop-up */
+    .modal {
+        position: fixed;
+        top: 0; left: 0;
+        width: 100%; height: 100%;
+        background: rgba(0,0,0,0.4);
+        display: none;
+        justify-content: center;
+        align-items: center;
+        animation: fadeIn 0.3s ease;
+    }
+    .modal-content {
+        background: #fffaf5;
+        padding: 20px;
+        border-radius: 15px;
+        text-align: center;
+        max-width: 300px;
+        animation: scaleUp 0.3s ease;
+    }
+    .modal-content h3 {
+        color: #a67b6a;
+    }
+    .modal-content input {
+        width: 90%;
+        padding: 8px;
+        margin-top: 10px;
+        border: 1px solid #e4c7b7;
+        border-radius: 8px;
+    }
+    .modal-content button {
+        margin-top: 10px;
+        background: #e7bba5;
+        border: none;
+        padding: 8px 15px;
+        border-radius: 8px;
+        color: white;
+        cursor: pointer;
+    }
+    @keyframes fadeIn {
+        from {opacity: 0;} to {opacity: 1;}
+    }
+    @keyframes scaleUp {
+        from {transform: scale(0.8);} to {transform: scale(1);}
+    }
+</style>
+</head>
+<body>
+
+<div class="calendar">
+    <h2 id="monthYear"></h2>
+    <table id="calendarTable">
+        <thead>
+            <tr>
+                <th>Lu</th><th>Ma</th><th>Me</th><th>Je</th>
+                <th>Ve</th><th>Sa</th><th>Di</th>
+            </tr>
+        </thead>
+        <tbody id="calendarBody"></tbody>
+    </table>
+</div>
+
+<!-- Pop-up -->
+<div class="modal" id="eventModal">
+    <div class="modal-content">
+        <h3 id="eventDate"></h3>
+        <input type="text" id="eventInput" placeholder="Ajouter un événement...">
+        <br>
+        <button onclick="saveEvent()">Enregistrer</button>
+        <br>
+        <div id="eventList"></div>
+    </div>
+</div>
+
+<script>
+    const monthYear = document.getElementById("monthYear");
+    const calendarBody = document.getElementById("calendarBody");
+    const eventModal = document.getElementById("eventModal");
+    const eventDate = document.getElementById("eventDate");
+    const eventInput = document.getElementById("eventInput");
+    const eventList = document.getElementById("eventList");
+
+    let events = JSON.parse(localStorage.getItem("calendarEvents") || "{}");
+    let selectedDate = "";
+
+    function renderCalendar() {
+        const date = new Date();
+        const month = date.getMonth();
+        const year = date.getFullYear();
+        monthYear.innerText = date.toLocaleString("fr-FR", { month: "long", year: "numeric" });
+
+        const firstDay = new Date(year, month, 1).getDay();
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+        calendarBody.innerHTML = "";
+        let row = document.createElement("tr");
+        let emptyCells = (firstDay + 6) % 7;
+        for (let i = 0; i < emptyCells; i++) {
+            row.appendChild(document.createElement("td"));
+        }
+
+        for (let day = 1; day <= daysInMonth; day++) {
+            const cell = document.createElement("td");
+            cell.textContent = day;
+            const dateKey = `${year}-${month + 1}-${day}`;
+            if (events[dateKey]) {
+                cell.classList.add("event-day");
+            }
+            cell.onclick = () => openModal(dateKey);
+            row.appendChild(cell);
+
+            if ((day + emptyCells) % 7 === 0) {
+                calendarBody.appendChild(row);
+                row = document.createElement("tr");
+            }
+        }
+        if (row.children.length) {
+            calendarBody.appendChild(row);
+        }
+    }
+
+    function openModal(dateKey) {
+        selectedDate = dateKey;
+        eventDate.innerText = `Événements du ${dateKey}`;
+        eventInput.value = "";
+        showEvents();
+        eventModal.style.display = "flex";
+    }
+
+    function showEvents() {
+        eventList.innerHTML = "";
+        if (events[selectedDate]) {
+            events[selectedDate].forEach(ev => {
+                const p = document.createElement("p");
+                p.innerText = ev;
+                eventList.appendChild(p);
+            });
+        }
+    }
+
+    function saveEvent() {
+        const eventText = eventInput.value.trim();
+        if (!eventText) return;
+        if (!events[selectedDate]) events[selectedDate] = [];
+        events[selectedDate].push(eventText);
+        localStorage.setItem("calendarEvents", JSON.stringify(events));
+        eventInput.value = "";
+        showEvents();
+        renderCalendar();
+    }
+
+    eventModal.onclick = (e) => {
+        if (e.target === eventModal) eventModal.style.display = "none";
+    };
+
+    renderCalendar();
+</script>
+
+</body>
+</html>
